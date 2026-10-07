@@ -17,9 +17,12 @@ jobs:
           release: '27'
       - name: Install matching Chromium
         run: mvn --strict-checksums -B -ntp compile exec:java -Dexec.mainClass=com.microsoft.playwright.CLI '-Dexec.args=install --with-deps chromium'
+      - name: Allow Chromium sandbox user namespaces on the disposable runner
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Verify Java and real browser fixtures
         env:
           RUN_BROWSER_TESTS: 'true'
+          DEBUG: pw:browser
         run: mvn --strict-checksums -B -ntp clean verify
       - name: Verify restricted IPv6 proxy
         run: python3 -m unittest discover -s scripts -p 'test_*.py'

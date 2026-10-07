@@ -476,6 +476,10 @@ Die Scheduler-Tests warten auf den tatsächlich aktualisierten Quellstatus, bevo
 das Ergebnis prüfen. Der lokale HTTPS-Testserver verarbeitet Browserverbindungen
 parallel; für Browserstart und Navigation gelten fünf Sekunden pro Schritt und
 30 Sekunden Gesamtbudget, damit die Tests auch auf CI-Runnern zuverlässig laufen.
+Der kurzlebige Ubuntu-24.04-CI-Runner erlaubt dafür User Namespaces mit
+`kernel.apparmor_restrict_unprivileged_userns=0`; die Chromium-Sandbox bleibt aktiv.
+Hintergrund: [AppArmor-Einschränkungen für Chromium](https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md).
+`DEBUG=pw:browser` macht Browserstartfehler im CI-Log sichtbar.
 `RUN_BROWSER_TESTS=true` aktiviert echte Chromium-Tests gegen einen lokalen IPv6-HTTPS-
 Server: direkte Redirects/Suchliste, Unicode, Sitzungscookies, JavaScript-Preise, exakte
 Identität, HTTP-200-Challenge, auflösende HTTP-403-Challenge, externe Redirects und
