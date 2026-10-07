@@ -24,7 +24,7 @@ services:
       PRICES_SOURCE_CHECK_AT_STARTUP: ${PRICES_SOURCE_CHECK_AT_STARTUP:-false}
       PRICES_DIAGNOSTICS_ENABLED: ${PRICES_DIAGNOSTICS_ENABLED:-false}
       IPV6_PROXY_ENABLED: ${IPV6_PROXY_ENABLED:-true}
-      IPV6_PROXY_ALLOWED_HOSTS: ${IPV6_PROXY_ALLOWED_HOSTS:-www.brettspiel-angebote.de,brettspiel-angebote.de}
+      IPV6_PROXY_ALLOWED_HOSTS: ${IPV6_PROXY_ALLOWED_HOSTS:-www.brettspiel-angebote.de,brettspiel-angebote.de,fonts.bunny.net}
     volumes:
       - ./data:/app/data
     healthcheck:

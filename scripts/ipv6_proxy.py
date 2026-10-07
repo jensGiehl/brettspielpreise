@@ -112,7 +112,7 @@ class LocalProxy(socketserver.ThreadingTCPServer):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
-    hosts = allowed_hosts(os.getenv("IPV6_PROXY_ALLOWED_HOSTS", "www.brettspiel-angebote.de,brettspiel-angebote.de"))
+    hosts = allowed_hosts(os.getenv("IPV6_PROXY_ALLOWED_HOSTS", "www.brettspiel-angebote.de,brettspiel-angebote.de,fonts.bunny.net"))
     with LocalProxy(8891, hosts) as server:
         LOG.info("Listening on 127.0.0.1:8891; IPv6 only; allowedHosts=%s", sorted(hosts))
         server.serve_forever()

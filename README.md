@@ -217,7 +217,7 @@ Spring verwendet typisierte und validierte `prices.*`-Properties. Umgebungsvaria
 | `PRICES_COOLDOWN` | `5m` | Fehler-Abkühlphase, 0–15m |
 | `PRICES_PROXY` | leer | HTTP/SOCKS5-Proxy ausschließlich auf Loopback ohne Zugangsdaten |
 | `IPV6_PROXY_ENABLED` | `false`, Compose: `true` | Im Container eingeschränkten IPv6-Proxy starten, setzt `PRICES_PROXY`; im empfohlenen Pi-Start aktiviert |
-| `IPV6_PROXY_ALLOWED_HOSTS` | beide Schreibweisen der Quelldomain | Exakte erlaubte HTTPS-Hostnamen, kommasepariert |
+| `IPV6_PROXY_ALLOWED_HOSTS` | `www.brettspiel-angebote.de,brettspiel-angebote.de,fonts.bunny.net` | Exakte erlaubte HTTPS-Hostnamen, kommasepariert; eigener Wert ersetzt die gesamte Liste |
 | `PRICES_DIAGNOSTICS_ENABLED` | `false` | Private Fehler-Screenshots/HTML opt-in |
 | `PRICES_DIAGNOSTICS_PATH` | `/app/diagnostics` | Diagnoseverzeichnis |
 | `PRICES_DIAGNOSTIC_FILES` | `20` | Maximal 20 Dateien standardmäßig, HTML höchstens 1 MiB |
@@ -312,6 +312,7 @@ docker run -d \
   --security-opt "seccomp=$(pwd)/docker/seccomp_profile.json" \
   -e SERVER_PORT=8090 \
   -e IPV6_PROXY_ENABLED=true \
+  -e IPV6_PROXY_ALLOWED_HOSTS=www.brettspiel-angebote.de,brettspiel-angebote.de,fonts.bunny.net \
   -e DB_PATH=/app/data/bg-prices \
   --mount "type=bind,source=$(pwd)/data,target=/app/data" \
   "$IMAGE"
@@ -462,10 +463,15 @@ keine Wildcards, privaten IP-Ziele oder IPv4-Upstreams. Verbindungen laufen expl
 `AF_INET6`; die Linux-Routen/Privacy-Konfiguration wählen die Quelladresse. Ohne öffentliche
 AAAA-Adresse/Route schlägt der Proxy fehl, statt still auf IPv4 zurückzugehen.
 
-Benötigte externe Schutz-/CDN-Hosts müssen nach Beobachtung ausdrücklich in
-`IPV6_PROXY_ALLOWED_HOSTS` ergänzt werden. Der Proxy startet bewusst mit den zwei
-Schreibweisen der Quelldomain; die aktuell benötigten externen Hosts konnten wegen der
-Sperre noch nicht festgestellt werden. Der Proxy ist auf 16 Tunnel, Headergröße 8 KiB,
+Neben den beiden Schreibweisen der Quelldomain ist `fonts.bunny.net` freigegeben:
+Im Pi-Log vom 7. Oktober 2026 wurde dieser Host wiederholt während der Schutzseite
+`Establishing a secure connection ...` angefordert und vom Proxy abgelehnt.
+Damit ist ein blockierter Ressourcenabruf nachgewiesen, aber noch nicht dessen
+Ursächlichkeit für die ungelöste Schutzprüfung. Weitere benötigte externe Hosts müssen
+nach Beobachtung ausdrücklich in `IPV6_PROXY_ALLOWED_HOSTS` ergänzt werden. Ein eigener
+Wert ersetzt die gesamte Liste; deshalb immer auch beide Quelldomains angeben.
+Bei bestehenden Installationen eine alte Liste in `.env` oder im `docker run` aktualisieren
+und den Container neu erstellen. Der Proxy ist auf 16 Tunnel, Headergröße 8 KiB,
 fünf Sekunden Verbindungsaufbau und 60 Sekunden Tunneldauer begrenzt. TLS bleibt Ende-zu-Ende
 zwischen Chromium und Website, keine TLS-Entschlüsselung. Lokale Entwicklung:
 `python3 scripts/ipv6_proxy.py` und `PRICES_PROXY=http://127.0.0.1:8891`.
