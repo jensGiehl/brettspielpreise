@@ -62,17 +62,20 @@ jobs:
             --entrypoint java bg-prices:ci \
             -Dloader.main=de.agiehl.bgprices.browser.BrowserSmoke \
             -cp /app/bg-prices.jar org.springframework.boot.loader.launch.PropertiesLauncher
-      - name: HTTP readiness and restart
+      - name: Host networking, IPv6 proxy, HTTP readiness and restart
         run: |
           docker run -d --name bg-prices-ci --init --shm-size=256m \
             --security-opt seccomp=./docker/seccomp_profile.json \
-            -p 18090:8080 --mount "type=bind,source=$(pwd)/data,target=/app/data" bg-prices:ci
+            --network host -e SERVER_PORT=18090 -e IPV6_PROXY_ENABLED=true \
+            -e PRICES_SOURCE_CHECK_ENABLED=false \
+            --mount "type=bind,source=$(pwd)/data,target=/app/data" bg-prices:ci
           trap 'docker logs bg-prices-ci; docker rm -f bg-prices-ci' EXIT
           for attempt in $(seq 1 60); do
             if curl -fsS http://127.0.0.1:18090/actuator/health/readiness; then break; fi
             sleep 2
           done
           curl -fsS http://127.0.0.1:18090/actuator/health/readiness
+          docker exec bg-prices-ci python3 -c 'import socket; socket.create_connection(("127.0.0.1", 8891), timeout=5).close()'
           curl -fsSG --data-urlencode 'name=(fixture)' http://127.0.0.1:18090/api/v1/prices
           docker restart --timeout 65 bg-prices-ci
           for attempt in $(seq 1 60); do
@@ -80,6 +83,7 @@ jobs:
             sleep 2
           done
           curl -fsS http://127.0.0.1:18090/actuator/health/readiness
+          docker exec bg-prices-ci python3 -c 'import socket; socket.create_connection(("127.0.0.1", 8891), timeout=5).close()'
       - name: Export verified image
         if: inputs.export-images
         env:

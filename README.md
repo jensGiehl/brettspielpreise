@@ -216,7 +216,7 @@ Spring verwendet typisierte und validierte `prices.*`-Properties. Umgebungsvaria
 | `PRICES_RETRY_PAUSE` | `750ms` | Retry-Pause zusätzlich zum Mindestabstand |
 | `PRICES_COOLDOWN` | `5m` | Fehler-Abkühlphase, 0–15m |
 | `PRICES_PROXY` | leer | HTTP/SOCKS5-Proxy ausschließlich auf Loopback ohne Zugangsdaten |
-| `IPV6_PROXY_ENABLED` | `false` | Im Container eingeschränkten IPv6-Proxy starten, setzt `PRICES_PROXY` |
+| `IPV6_PROXY_ENABLED` | `false`, Compose: `true` | Im Container eingeschränkten IPv6-Proxy starten, setzt `PRICES_PROXY`; im empfohlenen Pi-Start aktiviert |
 | `IPV6_PROXY_ALLOWED_HOSTS` | beide Schreibweisen der Quelldomain | Exakte erlaubte HTTPS-Hostnamen, kommasepariert |
 | `PRICES_DIAGNOSTICS_ENABLED` | `false` | Private Fehler-Screenshots/HTML opt-in |
 | `PRICES_DIAGNOSTICS_PATH` | `/app/diagnostics` | Diagnoseverzeichnis |
@@ -311,6 +311,7 @@ docker run -d \
   --stop-timeout=65 \
   --security-opt "seccomp=$(pwd)/docker/seccomp_profile.json" \
   -e SERVER_PORT=8090 \
+  -e IPV6_PROXY_ENABLED=true \
   -e DB_PATH=/app/data/bg-prices \
   --mount "type=bind,source=$(pwd)/data,target=/app/data" \
   "$IMAGE"
@@ -321,6 +322,10 @@ Unter `http://<PI-IP>:8090` ist die neue API erreichbar. 8090 vermeidet die Bele
 `-p` wird ignoriert. Compose enthält daher keine `ports:`-Zuordnung. `bg-offers` könnte
 später im selben Linux-Host-Netz `http://127.0.0.1:8090` verwenden. Bei einem anderen
 Netz muss die Host-Erreichbarkeit separat eingerichtet werden.
+
+Der Pi-Start aktiviert zusätzlich den IPv6-Proxy, damit Chromium für die Quelle
+IPv6 verwendet. Der Host benötigt dafür eine funktionierende öffentliche IPv6-Route.
+Der Proxy belegt den Loopback-Port 8891; dieser muss frei sein.
 
 Das offizielle Playwright-Seccomp-Profil in [docker/seccomp_profile.json](docker/seccomp_profile.json)
 erlaubt die für die Sandbox nötigen User-Namespace-Aufrufe. UID/GID sind **10001:10001**.
@@ -424,6 +429,12 @@ curl -4 -I https://www.brettspiel-angebote.de/
 curl -6 -I https://www.brettspiel-angebote.de/
 ```
 
+Der [Fix aus bg-offers](https://github.com/jensGiehl/bg-offers/commit/23ab7de0d34ba16048c4b102b65abe173cc4ea38)
+verwendet `network_mode: host`, um die IPv6-Routen und Quelladresswahl des Pi zu übernehmen.
+Dieser Host-Modus ist auch hier bereits konfiguriert. Ein `Navigation step=home ...
+httpStatus=403 ... title=403 Forbidden` kann dennoch auftreten, wenn Chromium IPv4
+verwendet oder die Website die gewählte IPv6-Quelladresse ebenfalls sperrt.
+
 Java-DNS-Sortierung und JVM-Properties beeinflussen **nicht** die Verbindungen des
 Chromium-Prozesses. Host-Netzwerk ermöglicht Zugriff auf Host-Routen/Adressen, garantiert
 aber keine Browser-IPv6-Präferenz. Nach einem API-Abruf zeigt
@@ -431,8 +442,10 @@ aber keine Browser-IPv6-Präferenz. Nach einem API-Abruf zeigt
 `observedAt`. DEBUG-Logs enthalten dieselbe Adresse. Ein erfolgreicher curl-Aufruf allein
 ist kein Browsernachweis.
 
-Wenn Chromium die gesperrte IPv4-Verbindung verwendet, den mitgelieferten **lokalen
-IPv6-HTTPS-CONNECT-Proxy** aktivieren:
+Compose, `.env.example` und der empfohlene Pi-Start aktivieren den mitgelieferten
+**lokalen IPv6-HTTPS-CONNECT-Proxy** standardmäßig. Bei bestehenden Installationen
+mit `IPV6_PROXY_ENABLED=false` in `.env` diesen Wert auf `true` ändern. Zum sofortigen
+Neustart mit IPv6 (ohne Änderung der `.env`):
 
 ```bash
 IPV6_PROXY_ENABLED=true docker compose up -d --force-recreate
@@ -441,7 +454,8 @@ curl -G http://127.0.0.1:8090/api/v1/prices \
   --data-urlencode name=Scythe --data-urlencode bggId=169786
 ```
 
-Bei manuellem `docker run` zusätzlich `-e IPV6_PROXY_ENABLED=true` setzen. Der Entrypoint
+Bei einem bestehenden manuellen `docker run` den Container mit der oben gezeigten
+Startsequenz einschließlich `-e IPV6_PROXY_ENABLED=true` neu erstellen. Der Entrypoint
 startet den Proxy im selben Netzwerknamespace auf **127.0.0.1:8891** und setzt den
 Browserproxy. Nur CONNECT zu Port 443 und exakt freigegebenen DNS-Namen ist erlaubt;
 keine Wildcards, privaten IP-Ziele oder IPv4-Upstreams. Verbindungen laufen explizit über
@@ -461,6 +475,10 @@ Bei Proxy-Nutzung zeigt Chromium gegebenenfalls nur Loopback; erst das Proxy-Log
 Quelladresse. Zusätzlich muss der **Live**-Abruf einen bestätigten verfügbaren Preis liefern.
 Der lokal getestete direkte IPv6-Pfad zu `[::1]` beweist Browserfähigkeit, nicht öffentliches
 Pi-Routing. Die abschließende Messung auf dem Pi steht aus.
+
+Für Hosts ohne öffentlichen IPv6-Zugang lässt sich der Proxy explizit mit
+`IPV6_PROXY_ENABLED=false` deaktivieren. Damit wählt Chromium die Verbindung wieder
+selbst; ein weiterhin auftretender 403 ist dadurch nicht behoben.
 
 ## Health, Logs, Diagnosen und Metriken
 
