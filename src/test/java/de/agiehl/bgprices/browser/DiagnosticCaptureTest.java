@@ -4,6 +4,9 @@ import com.microsoft.playwright.ConsoleMessage;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Request;
 import com.microsoft.playwright.Response;
+import com.microsoft.playwright.CDPSession;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import de.agiehl.bgprices.TestSettings;
 import de.agiehl.bgprices.config.PriceProperties;
 import java.nio.charset.StandardCharsets;
@@ -79,6 +82,39 @@ class DiagnosticCaptureTest {
         assertThat(observation.report()).hasSize(201);
         assertThat(observation.report().getFirst()).contains("droppedEvents=10");
         assertThat(observation.report().get(1)).startsWith("event-10 ").hasSize(1000);
+    }
+
+    @Test
+    void reportsCookieInclusionAndBlockingWithoutCookieValuesOrRawHeaders() {
+        var session = mock(CDPSession.class);
+        var observation = new DiagnosticCapture.Observation();
+        capture(true).observeCookies(session, observation);
+        ArgumentCaptor<Consumer<JsonObject>> requests = ArgumentCaptor.captor();
+        ArgumentCaptor<Consumer<JsonObject>> responses = ArgumentCaptor.captor();
+        verify(session).on(eq("Network.requestWillBeSentExtraInfo"), requests.capture());
+        verify(session).on(eq("Network.responseReceivedExtraInfo"), responses.capture());
+        requests.getValue().accept(JsonParser.parseString("""
+                {"requestId":"123", "associatedCookies":[
+                  {"cookie":{"name":"verification_fixture", "value":"request-secret", "domain":"example.org", "path":"/"}, "blockedReasons":[]},
+                  {"cookie":{"name":"other_fixture", "value":"blocked-secret", "domain":"other.example"}, "blockedReasons":["DomainMismatch"]}
+                ]}
+                """).getAsJsonObject());
+        responses.getValue().accept(JsonParser.parseString("""
+                {"requestId":"123", "statusCode":200,
+                 "headers":{"Set-Cookie":"verification_fixture=response-secret; Path=/\\ninvalid_fixture=invalid-secret; Domain=other.example", "Authorization":"private-header"},
+                 "blockedCookies":[{"cookieLine":"invalid_fixture=invalid-secret; Domain=other.example", "blockedReasons":["InvalidDomain"]}]}
+                """).getAsJsonObject());
+        String report = String.join("\n", observation.report());
+        assertThat(report).contains("request-cookies id=123", "verification_fixture", "DomainMismatch",
+                "setCookieNames=[verification_fixture, invalid_fixture]", "blocked-cookie", "InvalidDomain");
+        assertThat(report).doesNotContain("request-secret", "blocked-secret", "response-secret", "invalid-secret", "private-header");
+    }
+
+    @Test
+    void disabledDiagnosticsDoNotSubscribeToCookieEvents() {
+        var session = mock(CDPSession.class);
+        capture(false).observeCookies(session, new DiagnosticCapture.Observation());
+        verifyNoInteractions(session);
     }
 
     @Test

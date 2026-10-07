@@ -535,7 +535,10 @@ die Seite noch lesbar ist. HTML ist auf 1 MiB begrenzt. Pro Browserseite erfasst
 Diagnose die letzten 200 Ereignisse mit jeweils maximal 1000 Zeichen: HTTP-Antworten,
 fehlgeschlagene Requests, JavaScript-Fehler und Console-Warnungen/-Fehler. Request- und
 Response-URLs enthalten keine Zugangsdaten, Query oder Fragmente; Header und Bodies
-werden nicht im Textbericht erfasst. JavaScript-/Console-Texte sowie HTML können trotzdem
+werden nicht im Textbericht erfasst. Zusätzlich werden Cookie-Namen und Attribute,
+die beim Request berücksichtigten Cookies und Chromium-Blockierungsgründe erfasst.
+Cookie-Werte und vollständige `Set-Cookie`-/`Cookie`-Header werden dabei nicht gespeichert.
+Netzwerkereignisse lassen sich über `id=` zuordnen. JavaScript-/Console-Texte sowie HTML können trotzdem
 sensible Sitzungsdaten enthalten: nicht veröffentlichen. Sie werden weder über die API ausgeliefert noch als
 Preise gecacht. `.env`, Datenbanken und Diagnosen sind von Git/Build-Kontext ausgeschlossen.
 
@@ -556,6 +559,20 @@ Netzwerkfehler sind dadurch unterscheidbar; eine HTTP-Fehlerantwort ist für Pla
 kein `request-failed`-Ereignis. Siehe [Playwright-Request-Ereignisse](https://playwright.dev/java/docs/api/class-page#page-on-request-failed).
 Die Diagnose ändert weder Browseridentität noch Cookies oder Schutzantworten und
 garantiert keinen erfolgreichen Live-Zugriff.
+
+Bei wiederholtem `POST /.bunny-shield/verify-pow` mit HTTP 200 und anschließend erneutem
+HTTP 403 für die Startseite ist eine Schleife der Schutzprüfung belegt. HTTP 200 allein
+bestätigt noch keine freigegebene Browsersitzung. Auch `net::ERR_ABORTED` nach der Antwort
+beweist keinen Proxyfehler: Das [aktuelle Schutzskript](https://www.brettspiel-angebote.de/.bunny-shield/assets/shield-challenge.js)
+lädt die Seite nach der Prüfanfrage neu. Der Cookie-Bericht zeigt für den betreffenden
+Request die vom Server angebotenen Cookie-Namen (`response-cookies`), die beim nächsten
+Request berücksichtigten Cookies samt `blockedReasons` (`request-cookies`) und abgelehnte
+Set-Cookie-Anweisungen (`blocked-cookie`). Ein leerer `blockedReasons`-Eintrag bedeutet,
+dass Chromium das Cookie für den Request nicht blockiert hat; eine serverseitige
+Akzeptanz des Cookie-Werts ist damit nicht bewiesen.
+Ein lokaler HTTPS-Browsertest prüft denselben Ablauf mit einem synthetischen
+`Secure`-/`HttpOnly`-/`SameSite=Lax`-Cookie und Neuladen der Seite. Dieser Test bestätigt
+die lokale Cookie-Verarbeitung, keine Freigabe durch die echte Website.
 
 ## Prüfungen und aktuelle Grenzen
 

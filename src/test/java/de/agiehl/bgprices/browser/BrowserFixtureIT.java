@@ -3,6 +3,7 @@ package de.agiehl.bgprices.browser;
 import com.microsoft.playwright.Browser;
 import com.sun.net.httpserver.*;
 import de.agiehl.bgprices.TestSettings;
+import de.agiehl.bgprices.config.PriceProperties;
 import de.agiehl.bgprices.domain.*;
 import de.agiehl.bgprices.service.*;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -17,6 +18,8 @@ import java.util.concurrent.Executors;
 import javax.net.ssl.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.api.io.TempDir;
+import java.nio.file.Path;
 import static org.assertj.core.api.Assertions.*;
 
 @EnabledIfEnvironmentVariable(named = "RUN_BROWSER_TESTS", matches = "true")
@@ -29,6 +32,8 @@ class BrowserFixtureIT {
     private volatile String mode;
     private final List<String> searches = new CopyOnWriteArrayList<>();
     private final List<String> cookies = new CopyOnWriteArrayList<>();
+    private final java.util.concurrent.atomic.AtomicInteger challengePosts = new java.util.concurrent.atomic.AtomicInteger();
+    @TempDir Path diagnosticDirectory;
 
     @BeforeEach
     void setup() throws Exception {
@@ -100,6 +105,38 @@ class BrowserFixtureIT {
     }
 
     @Test
+    void preservesHttpOnlyVerificationCookiesAcrossFetchAndReload() {
+        mode = "cookie-challenge";
+        var settings = TestSettings.properties(URI.create("https://[::1]:" + server.getAddress().getPort() + "/"),
+                8, Duration.ofSeconds(5), Duration.ofSeconds(30));
+        var diagnosticSettings = new PriceProperties(settings.baseUrl(), settings.browserPath(), settings.headless(),
+                settings.sandbox(), settings.browserTimeout(), settings.queueTimeout(), settings.totalTimeout(),
+                settings.queueCapacity(), settings.attempts(), settings.minimumInterval(), settings.retryPause(),
+                settings.cooldown(), settings.proxy(), true, diagnosticDirectory, settings.diagnosticFiles(),
+                settings.sourceCheckEnabled(), settings.sourceCheckAtStartup());
+        var observed = new java.util.concurrent.atomic.AtomicReference<DiagnosticCapture.Observation>();
+        var diagnostics = new DiagnosticCapture(diagnosticSettings) {
+            @Override public Observation observe(com.microsoft.playwright.Page page) {
+                var observation = super.observe(page);
+                observed.set(observation);
+                return observation;
+            }
+        };
+        var urls = new UrlPolicy(diagnosticSettings);
+        client.close();
+        client = new PlaywrightPriceClient(diagnosticSettings, urls, new RenderedPageParser(urls, new GameNameNormalizer()),
+                diagnostics, connection, new SimpleMeterRegistry()) {
+            @Override protected Browser.NewContextOptions contextOptions() { return super.contextOptions().setIgnoreHTTPSErrors(true); }
+        };
+        assertThat(fetch("Die Glasstraße", 123L).status()).isEqualTo(LookupStatus.FOUND);
+        assertThat(challengePosts.get()).isEqualTo(1);
+        assertThat(cookies).allMatch(cookie -> cookie.contains("verification_fixture=accepted"));
+        assertThat(observed.get().report()).anySatisfy(line -> assertThat(line).contains("response-cookies", "setCookieNames=[verification_fixture]"));
+        assertThat(observed.get().report()).anySatisfy(line -> assertThat(line).contains("request-cookies", "verification_fixture", "blockedReasons=[]"));
+        assertThat(String.join("\n", observed.get().report())).doesNotContain("accepted");
+    }
+
+    @Test
     void waitsForGenericLoadingPagesOnHomeAndSearchUntilExpectedContentArrives() {
         mode = "loading-home";
         assertThat(fetch("Die Glasstraße", 123L).status()).isEqualTo(LookupStatus.FOUND);
@@ -141,7 +178,23 @@ class BrowserFixtureIT {
         try (exchange) {
             String path = exchange.getRequestURI().getPath();
             String html;
+            if (path.equals("/fixture-verify") && exchange.getRequestMethod().equals("POST")) {
+                challengePosts.incrementAndGet();
+                exchange.getResponseHeaders().add("Set-Cookie", "verification_fixture=accepted; Path=/; Secure; HttpOnly; SameSite=Lax");
+                exchange.sendResponseHeaders(200, -1);
+                return;
+            }
             if (path.equals("/")) {
+                String cookie = exchange.getRequestHeaders().getFirst("Cookie");
+                if (mode.equals("cookie-challenge") && (cookie == null || !cookie.contains("verification_fixture=accepted"))) {
+                    byte[] body = ("<h1>Establishing a secure connection</h1><script>"
+                            + "fetch('/fixture-verify', {method:'POST', redirect:'manual'})"
+                            + ".then(() => location.reload())</script>").getBytes(StandardCharsets.UTF_8);
+                    exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
+                    exchange.sendResponseHeaders(403, body.length);
+                    exchange.getResponseBody().write(body);
+                    return;
+                }
                 if (mode.equals("loading-home") && exchange.getRequestURI().getQuery() == null) {
                     loading(exchange, "/?ready=true");
                     return;

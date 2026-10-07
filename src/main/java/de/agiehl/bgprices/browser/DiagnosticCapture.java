@@ -1,6 +1,9 @@
 package de.agiehl.bgprices.browser;
 
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.CDPSession;
+import com.google.gson.JsonObject;
+import java.util.ArrayList;
 import de.agiehl.bgprices.config.PriceProperties;
 import java.io.IOException;
 import java.net.URI;
@@ -49,6 +52,55 @@ public class DiagnosticCapture {
             observation.add("javascript-error text=" + error);
         });
         return observation;
+    }
+
+    public void observeCookies(CDPSession session, Observation observation) {
+        if (!properties.diagnosticsEnabled()) return;
+        session.on("Network.requestWillBeSent", event -> {
+            var request = event.getAsJsonObject("request");
+            observation.add("network-request id=" + event.get("requestId").getAsString()
+                    + " method=" + request.get("method").getAsString() + " url=" + resourceUrl(request.get("url").getAsString()));
+        });
+        session.on("Network.requestWillBeSentExtraInfo", event -> {
+            var cookies = new ArrayList<String>();
+            for (var element : event.getAsJsonArray("associatedCookies")) {
+                var item = element.getAsJsonObject();
+                cookies.add(cookieMetadata(item.getAsJsonObject("cookie")) + " blockedReasons=" + item.get("blockedReasons"));
+            }
+            observation.add("request-cookies id=" + event.get("requestId").getAsString() + " cookies=" + cookies);
+        });
+        session.on("Network.responseReceivedExtraInfo", event -> {
+            var names = new ArrayList<String>();
+            for (var header : event.getAsJsonObject("headers").entrySet()) {
+                if (header.getKey().equalsIgnoreCase("set-cookie")) {
+                    for (String line : header.getValue().getAsString().split("\n")) names.add(cookieName(line));
+                }
+            }
+            observation.add("response-cookies id=" + event.get("requestId").getAsString()
+                    + " status=" + event.get("statusCode").getAsInt() + " setCookieNames=" + names);
+            for (var element : event.getAsJsonArray("blockedCookies")) {
+                var item = element.getAsJsonObject();
+                String metadata = item.has("cookie") ? cookieMetadata(item.getAsJsonObject("cookie"))
+                        : "name=" + cookieName(item.get("cookieLine").getAsString());
+                observation.add("blocked-cookie id=" + event.get("requestId").getAsString() + " " + metadata
+                        + " blockedReasons=" + item.get("blockedReasons"));
+            }
+        });
+    }
+
+    private String cookieMetadata(JsonObject cookie) {
+        var metadata = new JsonObject();
+        for (String field : List.of("name", "domain", "path", "secure", "httpOnly", "sameSite", "expires")) {
+            if (cookie.has(field)) metadata.add(field, cookie.get(field));
+        }
+        return metadata.toString();
+    }
+
+    private String cookieName(String header) {
+        int separator = header.indexOf('=');
+        if (separator <= 0) return "[invalid-cookie]";
+        String name = header.substring(0, separator).trim();
+        return name.matches("[!#$%&'*+.^_`|~0-9a-zA-Z-]{1,100}") ? name : "[invalid-cookie]";
     }
 
     public void capture(Page page, Deadline deadline, Observation observation) {
@@ -117,7 +169,7 @@ public class DiagnosticCapture {
         }
 
         List<String> report() {
-            var lines = new java.util.ArrayList<String>();
+            var lines = new ArrayList<String>();
             lines.add("httpErrors=" + httpErrors + " requestFailures=" + requestFailures
                     + " javascriptErrors=" + javascriptErrors + " consoleErrors=" + consoleErrors + " droppedEvents=" + dropped);
             lines.addAll(events);

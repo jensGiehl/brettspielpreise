@@ -82,7 +82,7 @@ public class PlaywrightPriceClient implements PriceClient {
                 observation = diagnostics.observe(page);
                 activePage = page;
                 unsafeNavigation.set(false);
-                attachNetworkDiagnostic(page);
+                attachNetworkDiagnostic(page, observation);
                 if (!started) {
                     navigate(page, properties.baseUrl().toString(), "home", deadline, unsafeNavigation);
                     started = true;
@@ -202,8 +202,9 @@ public class PlaywrightPriceClient implements PriceClient {
         } finally { page.offResponse(statusListener); }
     }
 
-    private void attachNetworkDiagnostic(Page page) {
+    private void attachNetworkDiagnostic(Page page, DiagnosticCapture.Observation observation) {
         CDPSession session = context.newCDPSession(page);
+        diagnostics.observeCookies(session, observation);
         String mainFrame = session.send("Page.getFrameTree").getAsJsonObject("frameTree")
                 .getAsJsonObject("frame").get("id").getAsString();
         com.google.gson.JsonObject fetchOptions = new com.google.gson.JsonObject();
