@@ -1,0 +1,31 @@
+services:
+  bg-prices:
+    image: ${BG_PRICES_IMAGE:-bg-prices:local}
+    build: .
+    init: true
+    restart: unless-stopped
+    network_mode: host
+    user: "10001:10001"
+    shm_size: 256m
+    mem_limit: 1536m
+    cpus: 2.0
+    pids_limit: 256
+    stop_grace_period: 65s
+    security_opt:
+      - seccomp=./docker/seccomp_profile.json
+    environment:
+      SERVER_PORT: ${SERVER_PORT:-8090}
+      DB_PATH: /app/data/bg-prices
+      DB_PASSWORD: ${DB_PASSWORD:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      PRICES_HEADLESS: ${PRICES_HEADLESS:-true}
+      PRICES_SANDBOX: "true"
+      PRICES_SOURCE_CHECK_ENABLED: ${PRICES_SOURCE_CHECK_ENABLED:-true}
+      PRICES_SOURCE_CHECK_AT_STARTUP: ${PRICES_SOURCE_CHECK_AT_STARTUP:-false}
+      PRICES_DIAGNOSTICS_ENABLED: ${PRICES_DIAGNOSTICS_ENABLED:-false}
+      IPV6_PROXY_ENABLED: ${IPV6_PROXY_ENABLED:-false}
+      IPV6_PROXY_ALLOWED_HOSTS: ${IPV6_PROXY_ALLOWED_HOSTS:-www.brettspiel-angebote.de,brettspiel-angebote.de}
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:$${SERVER_PORT}/actuator/health/readiness || exit 1"]

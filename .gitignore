@@ -1,0 +1,11 @@
+target/
+.env
+data/
+diagnostics/
+*.mv.db
+*.trace.db
+*.netlog.json
+.idea/
+*.iml
+*.log
+__pycache__/

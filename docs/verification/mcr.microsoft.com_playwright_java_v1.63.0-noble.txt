@@ -1,0 +1,12 @@
+Name:      mcr.microsoft.com/playwright/java:v1.63.0-noble
+MediaType: application/vnd.oci.image.index.v1+json
+Digest:    sha256:013e2595272806f887d91041fbf26be71dda2f48a805c717cc7de3bbca5339c8
+
+Manifests:
+  Name:      mcr.microsoft.com/playwright/java:v1.63.0-noble@sha256:31d025381dcf9ff61617c973298aed1e5451c01bb81a72b1c956891e8782c6b4
+  MediaType: application/vnd.oci.image.manifest.v1+json
+  Platform:  linux/amd64
+
+  Name:      mcr.microsoft.com/playwright/java:v1.63.0-noble@sha256:a8a495a2f4522bf467781ae6ae4591fdce7cd6e9bba5d4255626c412c2f3e98c
+  MediaType: application/vnd.oci.image.manifest.v1+json
+  Platform:  linux/arm64

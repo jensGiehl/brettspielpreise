@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>bg-prices · API-Dokumentation</title>
+    <link rel="stylesheet" href="../webjars/bootstrap/5.3.8/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../webjars/swagger-ui/5.33.1/swagger-ui.css">
+    <link rel="stylesheet" href="./documentation.css">
+</head>
+<body>
+<header class="documentation-header">
+    <div class="container py-4 py-md-5">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div>
+                <div class="text-uppercase small fw-semibold mb-2 documentation-kicker">Brettspiel-Preise · OpenAPI 3.1</div>
+                <h1 class="display-6 fw-semibold mb-2">bg-prices API</h1>
+                <p class="mb-0 documentation-subtitle">Endpunkte entdecken, Antworten verstehen und Anfragen ausprobieren.</p>
+            </div>
+            <a class="btn btn-light align-self-start flex-shrink-0" href="../api/openapi.yaml" download="bg-prices-openapi.yaml">OpenAPI herunterladen</a>
+        </div>
+    </div>
+</header>
+<main class="container py-4">
+    <div class="alert documentation-hint mb-4" role="note">
+        <strong>Direkt ausprobieren:</strong> Öffne einen Endpunkt und wähle „Try it out“.
+        Für Preise kannst du <strong>Scythe</strong> mit der BGG-ID <strong>169786</strong> verwenden.
+        Ein Live-Abruf kann bis zu 45 Sekunden dauern.
+    </div>
+    <section class="documentation-panel" aria-label="Interaktive API-Beschreibung">
+        <div id="swagger-ui"></div>
+        <noscript><p class="p-4">Für die interaktive Ansicht ist JavaScript erforderlich. Die <a href="../api/openapi.yaml">OpenAPI-Datei</a> steht auch direkt bereit.</p></noscript>
+    </section>
+</main>
+<script src="../webjars/swagger-ui/5.33.1/swagger-ui-bundle.js"></script>
+<script src="./documentation.js"></script>
+</body>
+</html>

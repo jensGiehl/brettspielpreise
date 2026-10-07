@@ -1,0 +1,109 @@
+Name:      docker.io/library/maven:3.9.16-eclipse-temurin-25
+MediaType: application/vnd.oci.image.index.v1+json
+Digest:    sha256:93b8a14ea2f412782e4e842651273b4d903e35cc496284f178fbbe2d67d00976
+
+Manifests:
+  Name:        docker.io/library/maven:3.9.16-eclipse-temurin-25@sha256:96f175708f766ea049ab6c794a85335d238894c75f8eb364bddd98086a5b7cfd
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    linux/amd64
+  Annotations:
+    org.opencontainers.image.source:          https://github.com/carlossg/docker-maven.git#1efa2614402e9645749d6e235c93ada60762b267:eclipse-temurin-25-noble
+    org.opencontainers.image.url:             https://hub.docker.com/_/maven
+    org.opencontainers.image.version:         3.9.16-eclipse-temurin-25-noble
+    com.docker.official-images.bashbrew.arch: amd64
+    org.opencontainers.image.base.digest:     sha256:3de35322659a0f69ae26ecd52e13ca73d294482c1bc3bfa1e9a7d67c1380485a
+    org.opencontainers.image.base.name:       eclipse-temurin:25-jdk-noble
+    org.opencontainers.image.created:         2026-09-26T00:21:18Z
+    org.opencontainers.image.revision:        1efa2614402e9645749d6e235c93ada60762b267
+
+  Name:        docker.io/library/maven:3.9.16-eclipse-temurin-25@sha256:a0a0979ee36da5f1230d68723c4d49b1880f99f4780f03fd514ff4c5c4ea8eaa
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    unknown/unknown
+  Annotations:
+    com.docker.official-images.bashbrew.arch: amd64
+    vnd.docker.reference.digest:              sha256:96f175708f766ea049ab6c794a85335d238894c75f8eb364bddd98086a5b7cfd
+    vnd.docker.reference.type:                attestation-manifest
+
+  Name:        docker.io/library/maven:3.9.16-eclipse-temurin-25@sha256:4908705d2e22261d4ee0aa74f2ecdabf7c034fd49f1aa15e262e4220f1d6ef06
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    linux/arm64/v8
+  Annotations:
+    org.opencontainers.image.source:          https://github.com/carlossg/docker-maven.git#1efa2614402e9645749d6e235c93ada60762b267:eclipse-temurin-25-noble
+    org.opencontainers.image.url:             https://hub.docker.com/_/maven
+    org.opencontainers.image.version:         3.9.16-eclipse-temurin-25-noble
+    com.docker.official-images.bashbrew.arch: arm64v8
+    org.opencontainers.image.base.digest:     sha256:9e079392e9cc3b7b126be4761cefaefd23236934f4954dbfa4a2e727d14dd505
+    org.opencontainers.image.base.name:       eclipse-temurin:25-jdk-noble
+    org.opencontainers.image.created:         2026-09-26T00:17:03Z
+    org.opencontainers.image.revision:        1efa2614402e9645749d6e235c93ada60762b267
+
+  Name:        docker.io/library/maven:3.9.16-eclipse-temurin-25@sha256:f4a88f9c6d7265564afec8d71a9e52fd08894badcdb618edac2771cc75ef39d4
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    unknown/unknown
+  Annotations:
+    vnd.docker.reference.digest:              sha256:4908705d2e22261d4ee0aa74f2ecdabf7c034fd49f1aa15e262e4220f1d6ef06
+    vnd.docker.reference.type:                attestation-manifest
+    com.docker.official-images.bashbrew.arch: arm64v8
+
+  Name:        docker.io/library/maven:3.9.16-eclipse-temurin-25@sha256:6d79f9a52367881acef5276e10a2f77e09a3be428ac3a3ab951a25014b530012
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    linux/ppc64le
+  Annotations:
+    com.docker.official-images.bashbrew.arch: ppc64le
+    org.opencontainers.image.base.digest:     sha256:68152cebdedbf43f6a5e589af8732354a2e2104f22b6117c2e502d5a7468f4b1
+    org.opencontainers.image.base.name:       eclipse-temurin:25-jdk-noble
+    org.opencontainers.image.created:         2026-09-26T06:18:04Z
+    org.opencontainers.image.revision:        1efa2614402e9645749d6e235c93ada60762b267
+    org.opencontainers.image.source:          https://github.com/carlossg/docker-maven.git#1efa2614402e9645749d6e235c93ada60762b267:eclipse-temurin-25-noble
+    org.opencontainers.image.url:             https://hub.docker.com/_/maven
+    org.opencontainers.image.version:         3.9.16-eclipse-temurin-25-noble
+
+  Name:        docker.io/library/maven:3.9.16-eclipse-temurin-25@sha256:20ce016a7f77788b3b40167de33e02719fe68976c723630ec89e615e11c88638
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    unknown/unknown
+  Annotations:
+    com.docker.official-images.bashbrew.arch: ppc64le
+    vnd.docker.reference.digest:              sha256:6d79f9a52367881acef5276e10a2f77e09a3be428ac3a3ab951a25014b530012
+    vnd.docker.reference.type:                attestation-manifest
+
+  Name:        docker.io/library/maven:3.9.16-eclipse-temurin-25@sha256:f6038e0e80fbd05ec843a05cc78124a5c725c21d632f1a2ed0eb5df3db3744cd
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    linux/riscv64
+  Annotations:
+    org.opencontainers.image.base.name:       eclipse-temurin:25-jdk-noble
+    org.opencontainers.image.created:         2026-09-09T09:14:09Z
+    org.opencontainers.image.revision:        1efa2614402e9645749d6e235c93ada60762b267
+    org.opencontainers.image.source:          https://github.com/carlossg/docker-maven.git#1efa2614402e9645749d6e235c93ada60762b267:eclipse-temurin-25-noble
+    org.opencontainers.image.url:             https://hub.docker.com/_/maven
+    org.opencontainers.image.version:         3.9.16-eclipse-temurin-25-noble
+    com.docker.official-images.bashbrew.arch: riscv64
+    org.opencontainers.image.base.digest:     sha256:4b51a7e41b891b14d9eb03ccb31047d26ac49992015fd08616520939d8dd0964
+
+  Name:        docker.io/library/maven:3.9.16-eclipse-temurin-25@sha256:f17948b7150aacc3bfb4c85435884355717b4f4c94da34450742c5b49ad9f7be
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    unknown/unknown
+  Annotations:
+    com.docker.official-images.bashbrew.arch: riscv64
+    vnd.docker.reference.digest:              sha256:f6038e0e80fbd05ec843a05cc78124a5c725c21d632f1a2ed0eb5df3db3744cd
+    vnd.docker.reference.type:                attestation-manifest
+
+  Name:        docker.io/library/maven:3.9.16-eclipse-temurin-25@sha256:4fa0ddbd58915c2dca3ca3e6d0e5b9391bdb8fc9dfce63ec244d9a0224feaddb
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    linux/s390x
+  Annotations:
+    org.opencontainers.image.created:         2026-09-25T23:17:15Z
+    org.opencontainers.image.revision:        1efa2614402e9645749d6e235c93ada60762b267
+    org.opencontainers.image.source:          https://github.com/carlossg/docker-maven.git#1efa2614402e9645749d6e235c93ada60762b267:eclipse-temurin-25-noble
+    org.opencontainers.image.url:             https://hub.docker.com/_/maven
+    org.opencontainers.image.version:         3.9.16-eclipse-temurin-25-noble
+    com.docker.official-images.bashbrew.arch: s390x
+    org.opencontainers.image.base.digest:     sha256:d2ed0d323c85e5af445019c6529ce7ebb40c5c36f3a15777b0ac1f57ec4d938b
+    org.opencontainers.image.base.name:       eclipse-temurin:25-jdk-noble
+
+  Name:        docker.io/library/maven:3.9.16-eclipse-temurin-25@sha256:a14e2af7cc1f621f0ab82db70c9f2af4632b221c04600b8230517788ecde224f
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    unknown/unknown
+  Annotations:
+    vnd.docker.reference.digest:              sha256:4fa0ddbd58915c2dca3ca3e6d0e5b9391bdb8fc9dfce63ec244d9a0224feaddb
+    vnd.docker.reference.type:                attestation-manifest
+    com.docker.official-images.bashbrew.arch: s390x

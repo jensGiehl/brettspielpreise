@@ -1,0 +1,73 @@
+body {
+    background: #f3f6fa;
+    color: #172b46;
+}
+
+.documentation-header {
+    background: linear-gradient(120deg, #15334d, #216d74);
+    color: #fff;
+}
+
+.documentation-kicker {
+    letter-spacing: .12em;
+    color: #b8eee6;
+}
+
+.documentation-subtitle {
+    color: #d8e9ef;
+}
+
+.documentation-hint {
+    background: #e4f3f1;
+    border: 1px solid #c4e3de;
+    color: #224a49;
+}
+
+.documentation-panel {
+    background: #fff;
+    border: 1px solid #e0e7ef;
+    border-radius: 1rem;
+    box-shadow: 0 8px 30px #15334d0a;
+    overflow-wrap: anywhere;
+}
+
+.swagger-ui .wrapper {
+    padding: 0 12px;
+}
+
+.swagger-ui .info {
+    margin: 28px 0;
+}
+
+.swagger-ui .info .title {
+    font-size: 28px;
+}
+
+.swagger-ui .opblock .opblock-summary {
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.swagger-ui .opblock .opblock-summary-path {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.swagger-ui .opblock .opblock-summary-description {
+    flex-basis: 100%;
+}
+
+.swagger-ui .responses-table,
+.swagger-ui .parameters-container {
+    overflow-x: auto;
+}
+
+@media (min-width: 768px) {
+    .swagger-ui .wrapper {
+        padding: 0 24px;
+    }
+
+    .swagger-ui .opblock .opblock-summary-description {
+        flex-basis: auto;
+    }
+}

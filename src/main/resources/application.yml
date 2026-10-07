@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: bg-prices
+  main:
+    banner-mode: off
+  datasource:
+    url: jdbc:h2:file:${DB_PATH:/app/data/bg-prices};DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=2000
+    username: sa
+    password: ${DB_PASSWORD:}
+    hikari:
+      connection-timeout: 2000
+      validation-timeout: 1000
+      maximum-pool-size: 4
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      jakarta.persistence.query.timeout: 2000
+  flyway:
+    enabled: true
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 32
+    max-connections: 128
+    accept-count: 32
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db,browserWorker
+        liveness:
+          include: livenessState
+logging:
+  level:
+    de.agiehl.bgprices: ${LOG_LEVEL:INFO}

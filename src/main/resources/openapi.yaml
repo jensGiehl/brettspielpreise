@@ -1,0 +1,151 @@
+openapi: 3.1.0
+info:
+  title: bg-prices
+  version: 1.0.0
+  description: >-
+    Browserbasierte EUR-Preise. Live wird zuerst versucht. Ein Fallback ist nur bis
+    fetchedAt plus einem Kalendermonat in UTC gültig (now < expiresAt).
+    Cache enthält historische Snapshots, keinen frisch bestätigten verfügbaren Preis.
+    Kein BGG-Token erforderlich. Alle Antworten verwenden Cache-Control no-store.
+paths:
+  /api/v1/prices:
+    get:
+      operationId: lookupPrices
+      summary: Preise eines Brettspiels recherchieren
+      description: >-
+        Maximal 45 Sekunden mit Standardkonfiguration inklusive Queue. Gleiche Schlüssel
+        werden zusammengeführt. Bundle ohne BGG-ID wird übersprungen. Ohne BGG-ID wird
+        der erste Treffer gewählt und dessen normalisierter h1-Name exakt geprüft.
+        Vollständiger gültiger Cache wird einem Live-Teilresultat vorgezogen.
+        Fehler lösen standardmäßig eine fünfminütige Abkühlphase aus; NO_MATCH nicht.
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema: {type: string, minLength: 1, maxLength: 300}
+          example: Scythe
+        - name: bggId
+          in: query
+          schema: {type: integer, format: int64, minimum: 1}
+          example: 169786
+      responses:
+        '200':
+          description: FOUND (Live oder Cache), reguläres NOT_FOUND oder SKIPPED
+          headers:
+            Cache-Control: {schema: {type: string}, example: no-store}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PriceResponse'}
+              examples:
+                live:
+                  summary: Ausschließlich illustrative Testwerte
+                  value: {status: FOUND, name: Scythe, normalizedName: Scythe, requestedBggId: 169786, matchedBggId: 169786, url: 'https://www.brettspiel-angebote.de/spiele/scythe/100/', currency: EUR, availablePrice: 44.90, bestPrice: 32.50, complete: true, dataSource: LIVE, stale: false, fetchedAt: '2026-10-07T10:00:00Z', expiresAt: '2026-11-07T10:00:00Z', lastAttemptAt: '2026-10-07T09:59:59Z', fallbackReason: null, errorCode: null, retryAt: null}
+                fallback:
+                  value: {status: FOUND, name: Scythe, normalizedName: Scythe, requestedBggId: 169786, matchedBggId: 169786, url: 'https://www.brettspiel-angebote.de/spiele/scythe/100/', currency: EUR, availablePrice: 44.90, bestPrice: 32.50, complete: true, dataSource: CACHE, stale: true, fetchedAt: '2026-10-07T10:00:00Z', expiresAt: '2026-11-07T10:00:00Z', lastAttemptAt: '2026-10-08T10:00:00Z', fallbackReason: UPSTREAM_BLOCKED, errorCode: null, retryAt: null}
+                historicalOnly:
+                  value: {status: FOUND, name: Scythe, normalizedName: Scythe, requestedBggId: 169786, matchedBggId: 169786, url: 'https://www.brettspiel-angebote.de/spiele/scythe/100/', currency: EUR, availablePrice: null, bestPrice: 32.50, complete: false, dataSource: LIVE, stale: false, fetchedAt: '2026-10-07T10:00:00Z', expiresAt: '2026-11-07T10:00:00Z', lastAttemptAt: '2026-10-07T09:59:59Z', fallbackReason: null, errorCode: null, retryAt: null}
+                notFound:
+                  value: {status: NOT_FOUND, name: Unbekannt, normalizedName: Unbekannt, requestedBggId: null, matchedBggId: null, url: null, currency: EUR, availablePrice: null, bestPrice: null, complete: false, dataSource: NONE, stale: false, fetchedAt: null, expiresAt: null, lastAttemptAt: '2026-10-07T10:00:00Z', fallbackReason: null, errorCode: NO_MATCH, retryAt: null}
+        '400':
+          description: Fehlende oder ungültige Parameter
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/InvalidRequest'}
+        '429':
+          description: Browser-Queue voll und kein gültiger Fallback vorhanden
+          headers:
+            Retry-After: {schema: {type: string}, example: '5'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PriceResponse'}
+        '503':
+          description: Technischer Fehler ohne gültigen Cache; Preise immer null
+          headers:
+            Retry-After: {schema: {type: string}, description: Sekunden bis zum sinnvollen nächsten Versuch}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PriceResponse'}
+              example: {status: ERROR, name: Scythe, normalizedName: Scythe, requestedBggId: 169786, matchedBggId: null, url: null, currency: EUR, availablePrice: null, bestPrice: null, complete: false, dataSource: NONE, stale: false, fetchedAt: null, expiresAt: null, lastAttemptAt: '2026-10-07T10:00:00Z', fallbackReason: null, errorCode: UPSTREAM_BLOCKED, retryAt: '2026-10-07T10:05:00Z'}
+  /api/v1/source-status:
+    get:
+      operationId: sourceStatus
+      summary: Letzter tatsächlicher Live-Abruf und Chromium-Netzwerkdiagnose
+      description: >-
+        Dieser Endpunkt navigiert nicht extern. Nur ein live belegter verfügbarer Preis
+        zählt als UP. Cache-Nutzung ändert den Quellstatus nicht. Ein historischer Preis
+        allein ist DOWN. UNKNOWN bedeutet noch nicht geprüft. observedAt/checkedAt prüfen;
+        der letzte erfolgreiche Status kann alt sein. Bei Proxy beweist Chromium nur den
+        Loopback-Pfad; IPv6-Upstream und Quelladresse im Proxy-Log prüfen.
+      responses:
+        '200':
+          description: Lokaler Status, unabhängig von Liveness und Readiness
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  source:
+                    type: object
+                    properties:
+                      status: {type: string, enum: [UNKNOWN, UP, DOWN]}
+                      checkedAt: {type: [string, 'null'], format: date-time}
+                      lastLiveAvailableAt: {type: [string, 'null'], format: date-time}
+                      errorCode: {$ref: '#/components/schemas/FailureCode'}
+                      complete: {type: boolean}
+                  browserConnection:
+                    type: [object, 'null']
+                    properties:
+                      remoteAddress: {type: string}
+                      ipv6: {type: boolean}
+                      proxyConfigured: {type: boolean}
+                      observedAt: {type: string, format: date-time}
+components:
+  schemas:
+    PriceResponse:
+      type: object
+      required: [status, name, normalizedName, requestedBggId, matchedBggId, url, currency, availablePrice, bestPrice, complete, dataSource, stale, fetchedAt, expiresAt, lastAttemptAt, fallbackReason, errorCode, retryAt]
+      properties:
+        status: {type: string, enum: [FOUND, NOT_FOUND, ERROR, SKIPPED]}
+        name: {type: string}
+        normalizedName: {type: string}
+        requestedBggId: {type: [integer, 'null'], format: int64}
+        matchedBggId: {type: [integer, 'null'], format: int64}
+        url: {type: [string, 'null'], format: uri}
+        currency: {type: string, const: EUR}
+        availablePrice:
+          type: [number, 'null']
+          minimum: 0
+          description: Günstigster zum Erhebungszeitpunkt verfügbarer Vergleichspreis laut Website; keine Aussage zu Versandkosten
+        bestPrice:
+          type: [number, 'null']
+          minimum: 0
+          description: Historischer absoluter Bestpreis laut Website
+        complete: {type: boolean, description: true nur mit beiden belegten Preisen}
+        dataSource: {type: string, enum: [LIVE, CACHE, NONE]}
+        stale: {type: boolean, description: true ausschließlich bei Cache-Fallback}
+        fetchedAt: {type: [string, 'null'], format: date-time}
+        expiresAt: {type: [string, 'null'], format: date-time}
+        lastAttemptAt: {type: [string, 'null'], format: date-time, description: Beginn des letzten tatsächlichen Versuchs; Queue-Ablehnung verändert ihn nicht}
+        fallbackReason: {$ref: '#/components/schemas/FailureCode'}
+        errorCode: {$ref: '#/components/schemas/FailureCode'}
+        retryAt: {type: [string, 'null'], format: date-time}
+    FailureCode:
+      type: [string, 'null']
+      enum: [null, NO_MATCH, EMPTY_NAME, BUNDLE_WITHOUT_ID, NO_PRICE_DATA, PARTIAL_RESULT, UPSTREAM_BLOCKED, UPSTREAM_HTTP_ERROR, NETWORK_ERROR, NAVIGATION_TIMEOUT, IDENTITY_MISMATCH, IDENTITY_UNCONFIRMED, NAME_CONFLICT, PARSER_ERROR, UNSAFE_NAVIGATION, BROWSER_CRASH, QUEUE_FULL, QUEUE_TIMEOUT, TOTAL_TIMEOUT, COOLDOWN, CACHE_UNAVAILABLE, SHUTTING_DOWN]
+      description: >-
+        UPSTREAM_BLOCKED bedeutet 403/429 oder ungelöste Challenge. UPSTREAM_HTTP_ERROR
+        bedeutet sonstigen unerwarteten HTTP-Status. NETWORK_ERROR umfasst DNS/TLS/Transport.
+        NAVIGATION_TIMEOUT betrifft den Browser, TOTAL_TIMEOUT die Gesamtdauer,
+        QUEUE_TIMEOUT die Wartezeit. IDENTITY_MISMATCH ist eine nachgewiesene abweichende
+        BGG-ID, IDENTITY_UNCONFIRMED eine fehlende/mehrdeutige Bestätigung. NAME_CONFLICT
+        betrifft die Suche ohne ID. PARSER_ERROR bedeutet unbekanntes/ungültiges Markup
+        oder Preisformat. NO_PRICE_DATA ist ein erkanntes Spiel ohne belegten Preis.
+        PARTIAL_RESULT kennzeichnet die Bevorzugung eines vollständigen alten Snapshots.
+    InvalidRequest:
+      type: object
+      required: [status, errorCode, message, timestamp]
+      properties:
+        status: {type: string, const: ERROR}
+        errorCode: {type: string, const: INVALID_REQUEST}
+        message: {type: string}
+        timestamp: {type: string, format: date-time}
