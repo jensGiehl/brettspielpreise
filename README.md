@@ -260,8 +260,12 @@ Nach der ersten Veröffentlichung die Sichtbarkeit des GHCR-Pakets prüfen und f
 anonyme Pulls auf **Public** setzen. Private Pakete benötigen vorher `docker login ghcr.io`
 mit einem Token mit `read:packages`. Details: [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
 
-Der Image-Name ist nach dem ersten erfolgreichen Workflow nutzbar. Das lokale Ändern
-der Workflow-Dateien erzeugt allein noch kein Image. Die getesteten Einzelimages stehen
+Das Image wurde im [erfolgreichen Veröffentlichungslauf](https://github.com/jensGiehl/brettspielpreise/actions/runs/37669295134)
+für AMD64 und ARM64 bereitgestellt. Anonymer Zugriff ist erst nach der einmaligen
+öffentlichen Freigabe möglich; für dieses Paket wurde der **anonyme Abruf des
+Multiarch-Manifests erfolgreich geprüft**. `docker login` ist für den Pull nicht erforderlich.
+Bei eigenen Forks die [Paketeinstellungen](https://github.com/users/jensGiehl/packages/container/package/brettspielpreise/settings)
+prüfen: **Change visibility → Public**. Die getesteten Einzelimages stehen
 im Veröffentlichungslauf zusätzlich einen Tag lang als `docker-image-amd64` und
 `docker-image-arm64` zum Download bereit. Auf dem Pi lässt sich das entpackte ARM64-Artefakt
 auch ohne Registry laden:
@@ -270,6 +274,11 @@ auch ohne Registry laden:
 docker load --input bg-prices-arm64.tar.gz
 docker tag bg-prices:arm64-ci bg-prices:local
 ```
+
+Bei einem Infrastrukturfehler wie einem nicht erreichbaren Ubuntu-Paketmirror den
+betroffenen Job über **Re-run failed jobs** erneut starten. Erfolgreiche Container-Jobs
+und deren Artefakte können im selben Lauf weiterverwendet werden. Die Java-Prüfung ist
+auf 15 Minuten, Container-Builds und Veröffentlichung jeweils auf 30 Minuten begrenzt.
 
 Für lokale Builds auf dem Pi bleibt `docker build -t bg-prices:local .` möglich.
 Die Multiarch-Veröffentlichung folgt dem [Docker-Verfahren für gemeinsame Manifeste](https://docs.docker.com/build/ci/github-actions/multi-platform/).

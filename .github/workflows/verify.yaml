@@ -12,6 +12,7 @@ permissions:
 jobs:
   java:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: oracle-actions/setup-java@v1
@@ -30,6 +31,7 @@ jobs:
       - name: Verify restricted IPv6 proxy
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
   container:
+    timeout-minutes: 30
     strategy:
       matrix:
         include:

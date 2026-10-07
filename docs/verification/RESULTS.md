@@ -100,11 +100,26 @@ Auch der Startversuch von Docker Desktop stellte keine nutzbare Engine bereit.
 Daher wurde lokal kein Docker-Build ausgeführt; die Container-Nachweise stammen
 aus dem oben verlinkten CI-Lauf auf nativen AMD64-/ARM64-Runnern.
 
-Der ergänzte Workflow `publish-image.yaml` ruft diese Prüfungen auf, übernimmt die
-getesteten Images als kurzlebige Artefakte und veröffentlicht bei Erfolg ein gemeinsames
-AMD64-/ARM64-Manifest nach `ghcr.io/jensgiehl/brettspielpreise`. Pull Requests bleiben
-ohne Veröffentlichung; Pushes auf den Standardbranch starten den Veröffentlichungslauf.
-Der tatsächliche Laufstatus ist in GitHub Actions zu prüfen.
+Der ergänzte Workflow `publish-image.yaml` wurde im
+[Veröffentlichungslauf 37669295134](https://github.com/jensGiehl/brettspielpreise/actions/runs/37669295134)
+für Commit `7bfabefdf420186f0359642c037333bf84dc5b30` erfolgreich ausgeführt:
+
+- Native AMD64-/ARM64-Builds einschließlich Container-Smoke, Sandbox und Neustart erfolgreich.
+- 42 Fach-/REST-Tests, neun Integrationsprüfungen und vier Python-Proxy-Tests erfolgreich.
+  Der externe Live-Preisvergleich wurde nicht aktiviert.
+- Ein blockierter Ubuntu-Paketmirror verursachte beim ersten Java-Job einen Stillstand.
+  Nach Abbruch wurde nur der Java-Job auf einem frischen Runner wiederholt und bestanden;
+  die bereits geprüften Images wurden weiterverwendet.
+- Veröffentlichung von `ghcr.io/jensgiehl/brettspielpreise:latest` und
+  `ghcr.io/jensgiehl/brettspielpreise:sha-7bfabefdf420186f0359642c037333bf84dc5b30` erfolgreich.
+- Gemeinsames Manifest per `docker buildx imagetools inspect` geprüft:
+  `sha256:f9ff453a3f8eb985e2eab212e2acb911b1233fdcaf4b2f87dd31da9336813306`.
+  Enthalten sind `linux/amd64` und `linux/arm64`.
+- Der abschließende anonyme Abruf des GHCR-Manifests `latest` ist erfolgreich und bestätigt
+  beide Architekturen. Für einen Pull ist keine GitHub-Anmeldung erforderlich.
+
+Pull Requests bleiben ohne Veröffentlichung; Pushes auf den Standardbranch starten
+den Veröffentlichungslauf.
 
 Der Raspberry Pi war nicht erreichbar bzw. nicht als zugängliche Umgebung bereitgestellt.
 Vor produktivem Betrieb auf dem Pi sind nach README zu prüfen:
@@ -120,5 +135,5 @@ Vor produktivem Betrieb auf dem Pi sind nach README zu prüfen:
 6. RAM/CPU/Shared Memory/PIDs unter Last auf dem echten Pi messen. QEMU ist nur ein
    ergänzender Architekturtest.
 
-Es wurde kein Registry-Image veröffentlicht, kein Deployment durchgeführt und keine
-Integration oder Änderung an `bg-offers` vorgenommen.
+Das Registry-Image wurde veröffentlicht. Es wurde kein Deployment auf dem Pi durchgeführt
+und keine Integration oder Änderung an `bg-offers` vorgenommen.
