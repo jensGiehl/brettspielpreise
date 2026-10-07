@@ -508,7 +508,8 @@ H2-Snapshot nach vollständigem Spring-Neustart in einer separaten `smoke-cache`
 Erwartet: `CHROMIUM_SMOKE_OK` und `PERSISTENT_CACHE_SMOKE_OK`. Für ARM64 mit
 `--platform linux/arm64` und dem ARM64-Image ausführen. Der vorbereitete Workflow
 [.github/workflows/verify.yaml](.github/workflows/verify.yaml) baut/prüft beide Architekturen
-ohne Veröffentlichung. QEMU ersetzt keine abschließende Ressourcen-/IPv6-Prüfung auf dem Pi.
+auf nativen AMD64-/ARM64-Runnern ohne Veröffentlichung. Die CI ersetzt keine abschließende
+Ressourcen-/IPv6-Prüfung auf dem Pi.
 
 Konkrete lokale Prüfergebnisse und ausstehende Container-/Pi-Verifikation stehen in
 [docs/verification/RESULTS.md](docs/verification/RESULTS.md).

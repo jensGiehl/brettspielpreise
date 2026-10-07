@@ -23,17 +23,20 @@ jobs:
         env:
           RUN_BROWSER_TESTS: 'true'
           DEBUG: pw:browser
-        run: mvn --strict-checksums -B -ntp clean verify
+        run: mvn --strict-checksums -B -ntp -Ddebug=false clean verify
       - name: Verify restricted IPv6 proxy
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
   container:
     strategy:
       matrix:
-        platform: [linux/amd64, linux/arm64]
-    runs-on: ubuntu-24.04
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
