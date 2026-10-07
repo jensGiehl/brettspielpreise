@@ -12,6 +12,8 @@ import java.security.KeyStore;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import javax.net.ssl.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -20,10 +22,11 @@ import static org.assertj.core.api.Assertions.*;
 @EnabledIfEnvironmentVariable(named = "RUN_BROWSER_TESTS", matches = "true")
 class BrowserFixtureIT {
     private HttpsServer server;
+    private ExecutorService serverExecutor;
     private PlaywrightPriceClient client;
     private LookupFactory lookups;
     private BrowserConnection connection;
-    private String mode;
+    private volatile String mode;
     private final List<String> searches = new CopyOnWriteArrayList<>();
     private final List<String> cookies = new CopyOnWriteArrayList<>();
 
@@ -37,9 +40,12 @@ class BrowserFixtureIT {
         ssl.init(keys.getKeyManagers(), null, null);
         server = HttpsServer.create(new InetSocketAddress(InetAddress.getByName("::1"), 0), 0);
         server.setHttpsConfigurator(new HttpsConfigurator(ssl));
+        serverExecutor = Executors.newVirtualThreadPerTaskExecutor();
+        server.setExecutor(serverExecutor);
         server.createContext("/", this::respond);
         server.start();
-        var settings = TestSettings.properties(URI.create("https://[::1]:" + server.getAddress().getPort() + "/"), 8, Duration.ofSeconds(15));
+        var settings = TestSettings.properties(URI.create("https://[::1]:" + server.getAddress().getPort() + "/"),
+                8, Duration.ofSeconds(5), Duration.ofSeconds(30));
         var urls = new UrlPolicy(settings);
         var names = new GameNameNormalizer();
         connection = new BrowserConnection();
@@ -50,7 +56,14 @@ class BrowserFixtureIT {
         mode = "direct";
     }
 
-    @AfterEach void close() { client.close(); server.stop(0); }
+    @AfterEach
+    void close() {
+        try { client.close(); }
+        finally {
+            server.stop(0);
+            serverExecutor.shutdownNow();
+        }
+    }
 
     @Test
     void followsDirectRedirectExecutesJavaScriptAndPreservesCookiesOverIpv6() {
@@ -122,7 +135,7 @@ class BrowserFixtureIT {
         assertThat(fetch("Die Glasstraße", 123L).reason()).isEqualTo(FailureCode.UNSAFE_NAVIGATION);
     }
 
-    private LiveResult fetch(String name, Long id) { return client.fetch(lookups.create(name, id), Deadline.after(Duration.ofSeconds(15))); }
+    private LiveResult fetch(String name, Long id) { return client.fetch(lookups.create(name, id), Deadline.after(Duration.ofSeconds(30))); }
 
     private void respond(HttpExchange exchange) {
         try (exchange) {

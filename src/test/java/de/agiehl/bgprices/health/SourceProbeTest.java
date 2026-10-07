@@ -14,6 +14,7 @@ import org.springframework.boot.context.properties.source.MapConfigurationProper
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.support.CronExpression;
 import static org.assertj.core.api.Assertions.*;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -30,14 +31,14 @@ class SourceProbeTest {
         var result = new LiveResult(LookupStatus.FOUND, "https://www.brettspiel-angebote.de/spiele/scythe/100/",
                 169786L, BigDecimal.TEN, BigDecimal.ONE, null);
         when(client.fetch(any(), any())).thenReturn(result);
-        var status = spy(new SourceStatus());
+        var status = new SourceStatus();
         var worker = new BrowserWorker(properties, client, new SimpleMeterRegistry());
         try {
             probe(properties, worker, client, status).daily();
             verify(client, timeout(2000)).fetch(argThat(lookup -> lookup.normalizedName().equals("Scythe")
                     && lookup.bggId().equals(169786L)), any());
-            verify(status, timeout(2000)).record(result, clock.instant());
-            assertThat(status.current().status()).isEqualTo("UP");
+            await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(status.current())
+                    .isEqualTo(new SourceStatus.State("UP", clock.instant(), clock.instant(), null, true)));
         } finally { worker.shutdown(); }
         Scheduled scheduled = SourceProbe.class.getMethod("daily").getAnnotation(Scheduled.class);
         ZoneId zone = ZoneId.of(scheduled.zone());
@@ -55,12 +56,12 @@ class SourceProbeTest {
         var result = new LiveResult(LookupStatus.FOUND, "https://www.brettspiel-angebote.de/spiele/scythe/100/",
                 169786L, null, BigDecimal.ONE, null);
         when(client.fetch(any(), any())).thenReturn(result);
-        var status = spy(new SourceStatus());
+        var status = new SourceStatus();
         var worker = new BrowserWorker(properties, client, new SimpleMeterRegistry());
         try {
             probe(properties, worker, client, status).daily();
-            verify(status, timeout(2000)).record(result, clock.instant());
-            assertThat(status.current().status()).isEqualTo("DOWN");
+            await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(status.current())
+                    .isEqualTo(new SourceStatus.State("DOWN", clock.instant(), null, FailureCode.NO_PRICE_DATA, false)));
         } finally { worker.shutdown(); }
     }
 

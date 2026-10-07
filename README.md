@@ -472,6 +472,10 @@ RUN_LIVE_PRICE_COMPARISON_TEST=true mvn --strict-checksums \
 ```
 
 Ohne Umgebungsflags laufen Fach-, Cache-, Restart- und REST-Tests ohne echte Website.
+Die Scheduler-Tests warten auf den tatsächlich aktualisierten Quellstatus, bevor sie
+das Ergebnis prüfen. Der lokale HTTPS-Testserver verarbeitet Browserverbindungen
+parallel; für Browserstart und Navigation gelten fünf Sekunden pro Schritt und
+30 Sekunden Gesamtbudget, damit die Tests auch auf CI-Runnern zuverlässig laufen.
 `RUN_BROWSER_TESTS=true` aktiviert echte Chromium-Tests gegen einen lokalen IPv6-HTTPS-
 Server: direkte Redirects/Suchliste, Unicode, Sitzungscookies, JavaScript-Preise, exakte
 Identität, HTTP-200-Challenge, auflösende HTTP-403-Challenge, externe Redirects und

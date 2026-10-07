@@ -9,7 +9,10 @@ public final class TestSettings {
     private TestSettings() { }
     public static PriceProperties properties() { return properties(URI.create("https://www.brettspiel-angebote.de/"), 8, Duration.ofSeconds(5)); }
     public static PriceProperties properties(URI origin, int capacity, Duration total) {
-        return new PriceProperties(origin, null, true, true, Duration.ofSeconds(1), total.dividedBy(2), total,
+        return properties(origin, capacity, Duration.ofSeconds(1), total);
+    }
+    public static PriceProperties properties(URI origin, int capacity, Duration browserTimeout, Duration total) {
+        return new PriceProperties(origin, null, true, true, browserTimeout, total.dividedBy(2), total,
                 capacity, 2, Duration.ZERO, Duration.ZERO, Duration.ofMinutes(5), null, false,
                 Path.of("target/diagnostics"), 10, false, false);
     }
