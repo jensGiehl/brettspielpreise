@@ -17,6 +17,8 @@ COPY src ./src
 RUN mvn --strict-checksums -B -ntp clean verify
 
 FROM mcr.microsoft.com/playwright/java:v1.63.0-noble@sha256:013e2595272806f887d91041fbf26be71dda2f48a805c717cc7de3bbca5339c8
+LABEL org.opencontainers.image.source="https://github.com/jensGiehl/brettspielpreise"
+LABEL org.opencontainers.image.description="Board game price API with Chromium and persistent H2 cache"
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends python3 curl ca-certificates && \
     rm -rf /var/lib/apt/lists/* && \

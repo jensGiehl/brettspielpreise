@@ -235,18 +235,57 @@ mindestens 2 GiB RAM: ein Worker, 1,5 GiB Containerlimit, zwei CPUs, 256 MiB Sha
 256 PIDs; die JVM erhält höchstens 55 % des Container-RAMs. Diese Werte sind noch keine
 Pi-Messung und müssen mit `docker stats bg-prices` auf dem Zielgerät geprüft werden.
 
+## Docker-Image erzeugen und veröffentlichen
+
+Der Workflow [Publish Docker image](.github/workflows/publish-image.yaml) läuft bei
+Pushes auf `main`/`master` sowie manuell über **Actions → Publish Docker image → Run workflow**.
+Er ruft zuerst den bestehenden Prüfworkflow auf: Maven-/Browser-Tests und native
+Container-Builds für **`linux/amd64`** und **`linux/arm64`**, jeweils mit Chromium-Sandbox,
+JavaScript, persistentem Cache und HTTP-Neustartprüfung. Nur wenn alle Prüfungen bestehen,
+werden genau diese geprüften Images nach GitHub Container Registry übertragen.
+Das gemeinsame Manifest wird ausschließlich vom Standardbranch veröffentlicht:
+
+```text
+ghcr.io/jensgiehl/brettspielpreise:latest
+ghcr.io/jensgiehl/brettspielpreise:sha-<vollständige-Commit-SHA>
+```
+
+Docker wählt beim Pull automatisch die passende Architektur. Raspberry Pi 3, 4 und 5
+benötigen dafür ein **64-Bit-Linux** (`uname -m` muss `aarch64` melden); ein 32-Bit-System
+(`armv7l`/`armv6l`) wird nicht unterstützt. Für Chromium sind mindestens 2 GiB RAM vorgesehen.
+
+Der Workflow nutzt `GITHUB_TOKEN` mit `packages: write` ausschließlich im
+Veröffentlichungsjob; ein zusätzliches Registry-Passwort ist nicht erforderlich.
+Nach der ersten Veröffentlichung die Sichtbarkeit des GHCR-Pakets prüfen und für
+anonyme Pulls auf **Public** setzen. Private Pakete benötigen vorher `docker login ghcr.io`
+mit einem Token mit `read:packages`. Details: [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
+
+Der Image-Name ist nach dem ersten erfolgreichen Workflow nutzbar. Das lokale Ändern
+der Workflow-Dateien erzeugt allein noch kein Image. Die getesteten Einzelimages stehen
+im Veröffentlichungslauf zusätzlich einen Tag lang als `docker-image-amd64` und
+`docker-image-arm64` zum Download bereit. Auf dem Pi lässt sich das entpackte ARM64-Artefakt
+auch ohne Registry laden:
+
+```bash
+docker load --input bg-prices-arm64.tar.gz
+docker tag bg-prices:arm64-ci bg-prices:local
+```
+
+Für lokale Builds auf dem Pi bleibt `docker build -t bg-prices:local .` möglich.
+Die Multiarch-Veröffentlichung folgt dem [Docker-Verfahren für gemeinsame Manifeste](https://docs.docker.com/build/ci/github-actions/multi-platform/).
+
 ## Docker auf dem Linux-Pi: empfohlener Host-Modus
 
-Das Projekt hat noch kein veröffentlichtes Registry-Image. Für Pull/Update muss
-`BG_PRICES_IMAGE` auf den tatsächlich bereitgestellten Registry-Namen gesetzt werden;
-die folgenden Befehle verwenden diesen Wert, ohne eine Veröffentlichung vorzutäuschen.
-Containerbau und CI veröffentlichen oder deployen nichts.
+Nach erfolgreichem Veröffentlichungslauf verwenden die folgenden Befehle das GHCR-Image.
+Mit `BG_PRICES_IMAGE` lässt sich alternativ ein bestimmter Commit-Tag oder ein anderer
+Registry-Name wählen. Der Workflow veröffentlicht Images; der Start auf dem Pi erfolgt
+mit den folgenden Befehlen.
 
 ```bash
 mkdir -p data
 sudo chown 10001:10001 data
 sudo chmod u+rwX data
-IMAGE="${BG_PRICES_IMAGE:?BG_PRICES_IMAGE auf den tatsächlichen Registry-Namen setzen}"
+IMAGE="${BG_PRICES_IMAGE:-ghcr.io/jensgiehl/brettspielpreise:latest}"
 
 docker rm -f bg-prices 2>/dev/null
 
@@ -325,7 +364,7 @@ benennt dieses bereits geprüfte Netzwerk. Ein gewöhnliches Docker-Bridge-Netz 
 Host-IPv6/Privacy-Adressen nicht automatisch.
 
 ```bash
-IMAGE="${BG_PRICES_IMAGE:?Registry-Namen setzen}"
+IMAGE="${BG_PRICES_IMAGE:-ghcr.io/jensgiehl/brettspielpreise:latest}"
 BRIDGE_NETWORK="${BG_PRICES_BRIDGE_NETWORK:?Geprüftes IPv6-Bridge-Netz setzen}"
 
 docker rm -f bg-prices 2>/dev/null
@@ -508,7 +547,9 @@ H2-Snapshot nach vollständigem Spring-Neustart in einer separaten `smoke-cache`
 Erwartet: `CHROMIUM_SMOKE_OK` und `PERSISTENT_CACHE_SMOKE_OK`. Für ARM64 mit
 `--platform linux/arm64` und dem ARM64-Image ausführen. Der vorbereitete Workflow
 [.github/workflows/verify.yaml](.github/workflows/verify.yaml) baut/prüft beide Architekturen
-auf nativen AMD64-/ARM64-Runnern ohne Veröffentlichung. Die CI ersetzt keine abschließende
+auf nativen AMD64-/ARM64-Runnern. Als eigenständiger Prüfworkflow veröffentlicht er nichts;
+der Veröffentlichungsworkflow übernimmt erst nach dessen Erfolg die geprüften Images.
+Die CI ersetzt keine abschließende
 Ressourcen-/IPv6-Prüfung auf dem Pi.
 
 Konkrete lokale Prüfergebnisse und ausstehende Container-/Pi-Verifikation stehen in

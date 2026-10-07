@@ -1,0 +1,56 @@
+name: Publish Docker image
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: publish-docker-image
+  cancel-in-progress: false
+jobs:
+  verify:
+    uses: ./.github/workflows/verify.yaml
+    with:
+      export-images: true
+  publish:
+    needs: verify
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: docker-image-*
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish verified images and multi-platform manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          commit_tag="sha-${GITHUB_SHA}"
+          manifests=()
+          for architecture in amd64 arm64; do
+            docker load --input "bg-prices-${architecture}.tar.gz"
+            actual_architecture=$(docker image inspect --format '{{.Architecture}}' "bg-prices:${architecture}-ci")
+            test "$actual_architecture" = "$architecture"
+            platform_image="${image}:${commit_tag}-${architecture}"
+            docker tag "bg-prices:${architecture}-ci" "$platform_image"
+            docker push "$platform_image"
+            manifests+=("$(docker image inspect --format '{{index .RepoDigests 0}}' "$platform_image")")
+          done
+          docker buildx imagetools create \
+            --tag "${image}:${commit_tag}" \
+            --tag "${image}:latest" \
+            "${manifests[@]}"
+          docker buildx imagetools inspect "${image}:${commit_tag}"
+          printf 'Image: `%s:latest`\n\nCommit: `%s:%s`\n\nPlatforms: `linux/amd64`, `linux/arm64`\n' \
+            "$image" "$image" "$commit_tag" >> "$GITHUB_STEP_SUMMARY"

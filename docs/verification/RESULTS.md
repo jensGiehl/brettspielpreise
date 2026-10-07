@@ -83,18 +83,33 @@ erfolgreich geprüft. Kein Versions-Downgrade allein zum Verbergen dieser Meldun
 Spring dokumentiert Boot 4.1.1 offiziell bis Java 26; die erfolgreiche Java-27-Prüfung
 ist konkret für dieses Projekt und keine offizielle Hersteller-Supportzusage.
 
+## Container auf nativen CI-Runnern nachgewiesen
+
+Der [erfolgreiche GitHub-Actions-Lauf für Commit 3213d58](https://github.com/jensGiehl/brettspielpreise/actions/runs/37655113540)
+belegt sowohl auf Ubuntu AMD64 als auch auf Ubuntu ARM64:
+
+- Docker-Build erfolgreich.
+- Chromium mit Sandbox, JavaScript, Datenvolume und persistentem Cache nach Neustart geprüft.
+- HTTP-Readiness und Container-Neustart erfolgreich.
+- Zusätzlich Java-/Browser-Fixtures und vier Proxy-Tests erfolgreich.
+
 ## Noch auf der Zielumgebung nachzuweisen
 
 Eine lokale Docker-Engine war nicht erreichbar (`dockerDesktopLinuxEngine`-Pipe fehlt).
 Auch der Startversuch von Docker Desktop stellte keine nutzbare Engine bereit.
-Daher **kein erfolgreicher Docker-Build oder Container-Smoke-Test behauptet**.
-Dockerfile, Compose, Seccomp-Profil, Browser-/Persistenz-Smoke und ein CI-Workflow für
-AMD64/ARM64 sind vorbereitet. Der CI-Workflow wurde hier nicht ausgeführt.
+Daher wurde lokal kein Docker-Build ausgeführt; die Container-Nachweise stammen
+aus dem oben verlinkten CI-Lauf auf nativen AMD64-/ARM64-Runnern.
+
+Der ergänzte Workflow `publish-image.yaml` ruft diese Prüfungen auf, übernimmt die
+getesteten Images als kurzlebige Artefakte und veröffentlicht bei Erfolg ein gemeinsames
+AMD64-/ARM64-Manifest nach `ghcr.io/jensgiehl/brettspielpreise`. Pull Requests bleiben
+ohne Veröffentlichung; Pushes auf den Standardbranch starten den Veröffentlichungslauf.
+Der tatsächliche Laufstatus ist in GitHub Actions zu prüfen.
 
 Der Raspberry Pi war nicht erreichbar bzw. nicht als zugängliche Umgebung bereitgestellt.
 Vor produktivem Betrieb auf dem Pi sind nach README zu prüfen:
 
-1. ARM64-Image bauen und `BrowserSmoke` mit UID 10001, aktiviertem Sandboxbetrieb,
+1. ARM64-Image beziehen und `BrowserSmoke` mit UID 10001, aktiviertem Sandboxbetrieb,
    Seccomp-Profil und tatsächlichem Datenmount ausführen.
 2. HTTP-Readiness und sauberen Container-Stopp/Neustart mit persistenter Datenbank prüfen.
 3. Öffentliche IPv6-Adresse, Route und vorhandene Privacy-Konfiguration prüfen.

@@ -1,8 +1,11 @@
 name: Verify without publication
 on:
   workflow_dispatch:
-  push:
-    branches: [main, master]
+  workflow_call:
+    inputs:
+      export-images:
+        type: boolean
+        default: false
   pull_request:
 permissions:
   contents: read
@@ -31,8 +34,10 @@ jobs:
       matrix:
         include:
           - platform: linux/amd64
+            architecture: amd64
             runner: ubuntu-24.04
           - platform: linux/arm64
+            architecture: arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
@@ -73,3 +78,18 @@ jobs:
             sleep 2
           done
           curl -fsS http://127.0.0.1:18090/actuator/health/readiness
+      - name: Export verified image
+        if: inputs.export-images
+        env:
+          ARCHITECTURE: ${{ matrix.architecture }}
+        run: |
+          docker tag bg-prices:ci "bg-prices:${ARCHITECTURE}-ci"
+          docker save "bg-prices:${ARCHITECTURE}-ci" | gzip -1 > "bg-prices-${ARCHITECTURE}.tar.gz"
+      - uses: actions/upload-artifact@v4
+        if: inputs.export-images
+        with:
+          name: docker-image-${{ matrix.architecture }}
+          path: bg-prices-${{ matrix.architecture }}.tar.gz
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
