@@ -517,7 +517,7 @@ DEBUG ergänzt die Chromium-Verbindungsadresse. Prometheus-Metriken:
 `bg_prices_browser_restarts`, `bg_prices_queue_size`, `bg_prices_queue_utilization`,
 `bg_prices_cache_errors`.
 
-Diagnosen sind standardmäßig aus. Für private Fehler-HTML/Screenshots zusätzlich:
+Diagnosen sind standardmäßig aus. Für private Fehlerberichte, HTML und Screenshots zusätzlich:
 
 ```bash
 mkdir -p diagnostics
@@ -529,9 +529,33 @@ Im Startbefehl `-e PRICES_DIAGNOSTICS_ENABLED=true` und
 `--mount "type=bind,source=$(pwd)/diagnostics,target=/app/diagnostics"` ergänzen; bei Compose
 entsprechend einen zweiten Volume-Eintrag setzen. Nur eigene `failure-*`-Dateien werden
 bei der nächsten Aufnahme bereinigt, maximal 20 Dateien bzw. 24 Stunden. Screenshots
-sind auf den Viewport begrenzt, HTML auf 1 MiB. Die Dateien können sensible Sitzungsdaten
-enthalten: nicht veröffentlichen. Sie werden weder über die API ausgeliefert noch als
+sind auf den Viewport begrenzt und werden nur bei verbleibendem Zeitbudget erstellt.
+Textbericht und HTML werden auch nach Ablauf der Browserdeadline gespeichert, soweit
+die Seite noch lesbar ist. HTML ist auf 1 MiB begrenzt. Pro Browserseite erfasst die
+Diagnose die letzten 200 Ereignisse mit jeweils maximal 1000 Zeichen: HTTP-Antworten,
+fehlgeschlagene Requests, JavaScript-Fehler und Console-Warnungen/-Fehler. Request- und
+Response-URLs enthalten keine Zugangsdaten, Query oder Fragmente; Header und Bodies
+werden nicht im Textbericht erfasst. JavaScript-/Console-Texte sowie HTML können trotzdem
+sensible Sitzungsdaten enthalten: nicht veröffentlichen. Sie werden weder über die API ausgeliefert noch als
 Preise gecacht. `.env`, Datenbanken und Diagnosen sind von Git/Build-Kontext ausgeschlossen.
+
+Bei weiterhin ungelöster Schutzseite trotz belegter IPv6-Tunnel ist die Ursache anhand
+des Seitentitels allein nicht feststellbar. Für das Run-Skript mit Daten unter `/root/bg-prices`
+zunächst `install -d -o 10001 -g 10001 -m 0700 /root/bg-prices/diagnostics` ausführen und
+beim `docker run` für `bg-prices` diese Optionen ergänzen:
+
+```bash
+  -e PRICES_DIAGNOSTICS_ENABLED=true \
+  --mount "type=bind,source=/root/bg-prices/diagnostics,target=/app/diagnostics" \
+```
+
+Nach Neuerstellung des Containers einen Preisabruf auslösen und die erzeugten
+`failure-*.txt`-/`failure-*.html`-Dateien prüfen. Das Log enthält die Fehlerzahlen und
+den Namen des Textberichts. Auch HTTP 403 für eine JavaScript-Prüfanfrage und echte
+Netzwerkfehler sind dadurch unterscheidbar; eine HTTP-Fehlerantwort ist für Playwright
+kein `request-failed`-Ereignis. Siehe [Playwright-Request-Ereignisse](https://playwright.dev/java/docs/api/class-page#page-on-request-failed).
+Die Diagnose ändert weder Browseridentität noch Cookies oder Schutzantworten und
+garantiert keinen erfolgreichen Live-Zugriff.
 
 ## Prüfungen und aktuelle Grenzen
 

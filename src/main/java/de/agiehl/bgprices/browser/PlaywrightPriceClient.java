@@ -74,10 +74,12 @@ public class PlaywrightPriceClient implements PriceClient {
         FailureCode last = FailureCode.BROWSER_CRASH;
         for (int attempt = 1; attempt <= properties.attempts(); attempt++) {
             Page page = null;
+            DiagnosticCapture.Observation observation = null;
             try {
                 deadline.remainingMillis();
                 ensureBrowser(deadline);
                 page = context.newPage();
+                observation = diagnostics.observe(page);
                 activePage = page;
                 unsafeNavigation.set(false);
                 attachNetworkDiagnostic(page);
@@ -100,12 +102,13 @@ public class PlaywrightPriceClient implements PriceClient {
                 return result;
             } catch (UpstreamException exception) {
                 last = exception.code();
-                if (page != null) diagnostics.capture(page, deadline);
+                if (page != null && observation != null) diagnostics.capture(page, deadline, observation);
             } catch (TimeoutError exception) {
                 last = FailureCode.NAVIGATION_TIMEOUT;
-                if (page != null) diagnostics.capture(page, deadline);
+                if (page != null && observation != null) diagnostics.capture(page, deadline, observation);
             } catch (PlaywrightException exception) {
                 last = browser == null || !browser.isConnected() ? FailureCode.BROWSER_CRASH : FailureCode.NETWORK_ERROR;
+                if (page != null && observation != null) diagnostics.capture(page, deadline, observation);
             } finally {
                 if (page != null) try { page.close(); } catch (PlaywrightException ignored) { started = false; }
                 activePage = null;
