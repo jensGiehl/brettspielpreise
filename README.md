@@ -205,7 +205,7 @@ Spring verwendet typisierte und validierte `prices.*`-Properties. Umgebungsvaria
 |---|---|---|
 | `PRICES_BASE_URL` | `https://www.brettspiel-angebote.de/` | HTTPS-Ursprung, kein Pfad/Query/Zugangsdaten |
 | `PRICES_BROWSER_PATH` | leer | Optional abweichende Chromium-Binärdatei; eigene Kompatibilität prüfen |
-| `PRICES_HEADLESS` | `true` | Für lokale Diagnose `false`, benötigt Display |
+| `PRICES_HEADLESS` | `true` | `false`: vollständiger Chromium mit Display; Container startet bei fehlendem `DISPLAY` automatisch Xvfb, lokale Java-Ausführung benötigt ein vorhandenes Display |
 | `PRICES_SANDBOX` | `true` | Chromium-Sandbox aktiv |
 | `PRICES_BROWSER_TIMEOUT` | `45s` | Navigation und Warten auf die erwartete Seite, maximal 45s; durch die Gesamtdeadline begrenzt |
 | `PRICES_QUEUE_TIMEOUT` | `10s` | Maximale Queue-Wartezeit, maximal 30s |
@@ -573,6 +573,35 @@ Akzeptanz des Cookie-Werts ist damit nicht bewiesen.
 Ein lokaler HTTPS-Browsertest prüft denselben Ablauf mit einem synthetischen
 `Secure`-/`HttpOnly`-/`SameSite=Lax`-Cookie und Neuladen der Seite. Dieser Test bestätigt
 die lokale Cookie-Verarbeitung, keine Freigabe durch die echte Website.
+
+Der Pi-Bericht vom 8. Oktober 2026 bestätigt: `verify-pow` setzt `bunny_shield`,
+Chromium berücksichtigt es beim anschließenden Seitenaufruf mit `blockedReasons=[]`,
+und die Website antwortet trotzdem wieder mit HTTP 403. Der Ablauf ist damit kein
+nachgewiesener Fehler beim lokalen Speichern oder Senden des Cookies. Die konkrete
+serverseitige Ablehnungsregel bleibt unbekannt. Ein lokaler Vergleich mit der Headless
+Shell und dem vollständigen Chromium im neuen Headless-Modus blieb ebenfalls bei 403;
+die normale Website funktioniert laut Rückmeldung im Browser des Nutzers.
+
+Für einen gezielten Vergleich auf dem Pi nach Veröffentlichung des aktualisierten
+Images beim `docker run` für `bg-prices` diese Option ergänzen:
+
+```bash
+  -e PRICES_HEADLESS=false \
+```
+
+Das Run-Skript zieht das Image und erstellt den Container wie bisher neu. Der Container
+startet dann den vollständigen Chromium auf einem virtuellen Display mit 1280 × 720
+Pixeln. Ein Pi-Desktop, ein Monitor oder zusätzliche Host-Pakete sind dafür nicht nötig.
+Der Display-Server lauscht nicht auf TCP; API-Port, IPv6-Proxy, Sandbox und Datenmount
+bleiben wie konfiguriert. Bei bereits gesetztem `DISPLAY` wird dieses weiterverwendet.
+Das virtuelle Display wird erst nach Ende des Anwendungsprozesses beendet; SIGTERM
+wird an die Anwendung weitergereicht. Der Start wird mit `Virtual display ready;
+Chromium headless=false.` protokolliert. Die CI prüft den Browserstart mit JavaScript
+und persistentem Cache auf AMD64 und ARM64. Diese Containerprüfung ist kein Live-Test
+der Website. Für den Betrieb ohne Display wieder `PRICES_HEADLESS=true` setzen.
+Das ist ein Vergleich des Browsermodus, kein bestätigter Fix für die Schutzprüfung;
+Browseridentität und Prüfcookies werden nicht künstlich überschrieben.
+Siehe [Playwright: Betrieb mit Xvfb](https://playwright.dev/java/docs/ci#running-headed).
 
 ## Prüfungen und aktuelle Grenzen
 

@@ -21,13 +21,15 @@ public class BrowserSmoke {
         if (!Files.readString(probe, StandardCharsets.UTF_8).equals("UTF-8: Glasstraße")) throw new IllegalStateException("Volume verification failed");
         Files.delete(probe);
         try (Playwright playwright = Playwright.create(); Browser browser = playwright.chromium().launch(
-                new BrowserType.LaunchOptions().setChromiumSandbox(true).setTimeout(15_000));
+                new BrowserType.LaunchOptions().setHeadless(Boolean.parseBoolean(System.getenv().getOrDefault("PRICES_HEADLESS", "true")))
+                        .setChromiumSandbox(true).setTimeout(15_000));
              BrowserContext context = browser.newContext()) {
             Page page = context.newPage();
             page.setContent("<html><body><div id='price'></div><script>setTimeout(() => document.querySelector('#price').textContent = '44.90', 50)</script></body></html>");
             page.waitForFunction("() => document.querySelector('#price').textContent === '44.90'", null,
                     new Page.WaitForFunctionOptions().setTimeout(5000));
-            System.out.println("CHROMIUM_SMOKE_OK browser=" + browser.version() + " architecture=" + System.getProperty("os.arch"));
+            System.out.println("CHROMIUM_SMOKE_OK browser=" + browser.version() + " architecture=" + System.getProperty("os.arch")
+                    + " headless=" + System.getenv().getOrDefault("PRICES_HEADLESS", "true"));
         }
         verifyPersistentCache(data);
     }

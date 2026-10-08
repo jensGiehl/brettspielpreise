@@ -20,10 +20,10 @@ FROM mcr.microsoft.com/playwright/java:v1.63.0-noble@sha256:013e2595272806f887d9
 LABEL org.opencontainers.image.source="https://github.com/jensGiehl/brettspielpreise"
 LABEL org.opencontainers.image.description="Board game price API with Chromium and persistent H2 cache"
 USER root
-RUN apt-get update && apt-get install -y --no-install-recommends python3 curl ca-certificates && \
+RUN apt-get update && apt-get install -y --no-install-recommends python3 curl ca-certificates xvfb x11-utils && \
     rm -rf /var/lib/apt/lists/* && \
     groupadd --gid 10001 bgprices && useradd --uid 10001 --gid 10001 --create-home bgprices && \
-    mkdir -p /app/data /app/diagnostics && chown -R 10001:10001 /app
+    mkdir -p /app/data /app/diagnostics /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix && chown -R 10001:10001 /app
 COPY --from=build /opt/jdk27 /opt/jdk27
 ENV JAVA_HOME=/opt/jdk27
 ENV PATH=/opt/jdk27/bin:$PATH
@@ -32,8 +32,8 @@ ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 WORKDIR /app
 COPY --from=build --chown=10001:10001 /build/target/bg-prices-1.0.0-SNAPSHOT.jar /app/bg-prices.jar
 COPY --chown=10001:10001 scripts /app/scripts
-RUN chmod +x /app/scripts/entrypoint.sh
+RUN chmod +x /app/scripts/entrypoint.sh /app/scripts/with-display.sh
 USER 10001:10001
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 CMD curl -fsS "http://127.0.0.1:${SERVER_PORT:-8080}/actuator/health/readiness" || exit 1
-ENTRYPOINT ["/app/scripts/entrypoint.sh"]
+ENTRYPOINT ["/app/scripts/with-display.sh", "/app/scripts/entrypoint.sh"]

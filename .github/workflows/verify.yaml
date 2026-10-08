@@ -28,7 +28,7 @@ jobs:
           RUN_BROWSER_TESTS: 'true'
           DEBUG: pw:browser
         run: mvn --strict-checksums -B -ntp -Ddebug=false clean verify
-      - name: Verify restricted IPv6 proxy
+      - name: Verify IPv6 proxy and virtual display supervision
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
   container:
     timeout-minutes: 30
@@ -84,6 +84,15 @@ jobs:
           done
           curl -fsS http://127.0.0.1:18090/actuator/health/readiness
           docker exec bg-prices-ci python3 -c 'import socket; socket.create_connection(("127.0.0.1", 8891), timeout=5).close()'
+      - name: Full Chromium on virtual display with sandbox and persistent cache
+        run: |
+          docker run --rm --init --platform '${{ matrix.platform }}' \
+            --shm-size=256m --security-opt seccomp=./docker/seccomp_profile.json \
+            -e PRICES_HEADLESS=false -e PRICES_SOURCE_CHECK_ENABLED=false \
+            --mount "type=bind,source=$(pwd)/data,target=/app/data" \
+            --entrypoint /app/scripts/with-display.sh bg-prices:ci \
+            java -Dloader.main=de.agiehl.bgprices.browser.BrowserSmoke \
+            -cp /app/bg-prices.jar org.springframework.boot.loader.launch.PropertiesLauncher
       - name: Export verified image
         if: inputs.export-images
         env:
